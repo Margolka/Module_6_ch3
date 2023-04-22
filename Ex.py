@@ -1,13 +1,12 @@
-from sqlalchemy import Table, Column, Integer, String, MetaData, Date, Float
+from sqlalchemy import Table, Column, Integer, String, MetaData, Date, Float, ForeignKey
 from sqlalchemy import create_engine
 
 meta = MetaData()
 measure = Table(
     "measure",
     meta,
-    Column("id", Integer, primary_key=True),
     Column("station", String),
-    Column("date", Date),
+    Column("date", String),
     Column("precip", Float),
     Column("tobs", Integer),
 )
@@ -15,7 +14,6 @@ measure = Table(
 stations = Table(
     "stations",
     meta,
-    Column("id", Integer, primary_key=True),
     Column("station", String),
     Column("latitude", Float),
     Column("longitude", Float),
@@ -42,15 +40,31 @@ if __name__ == "__main__":
     conn = engine.connect()
     meta.create_all(engine)
     stations_data = import_data("clean_stations.csv")
-    conn.execute(
-        "INSERT INTO stations (station,latitude,longitude,elevation,name,country,state) VALUES(?,?,?,?,?,?,?)",
-        stations_data,
-    )
-
     measure_data = import_data("clean_measure.csv")
-    conn.execute(
-        "INSERT INTO measure (station,date,precip,tobs) VALUES(?,?,?,?)", measure_data
-    )
+    conn.execute(stations.insert().values(stations_data))
+    conn.execute(measure.insert().values(measure_data))
 
     list = conn.execute("SELECT * FROM stations LIMIT 5").fetchall()
     print(*list, sep="\n")
+
+    # delete
+    conn.execute(stations.delete().where(stations.c.station == "USC00519397"))
+    list = conn.execute("SELECT * FROM stations").fetchall()
+    print("After delete", *list, sep="\n")
+
+    # insert
+    deleted_row = ("USC00519397", 21.2716, -157.8168, 3, "WAIKIKI 717.2", "US", "HI")
+    conn.execute(stations.insert().values(deleted_row))
+
+    # update
+    conn.execute(
+        stations.update()
+        .where(stations.c.station == "USC00519397")
+        .values(name="*** WAIKIKI *** 717.2")
+    )
+
+    # select
+    selected = conn.execute(
+        stations.select().where(stations.c.station == "USC00519397")
+    )
+    print("selected:\n", *selected)
