@@ -14,7 +14,7 @@ measure = Table(
 stations = Table(
     "stations",
     meta,
-    Column("station", String),
+    Column("station", String, primary_key=True),
     Column("latitude", Float),
     Column("longitude", Float),
     Column("elevation", Integer),
@@ -24,32 +24,29 @@ stations = Table(
 )
 
 
-def import_data(filecsv):
-    data = []
+def import_data(conn, filecsv, destynation):
     with open(filecsv, "r") as file:
         next(file)
         for line in file:
             line = line.replace("\n", "")
             line = line.replace("\r", "")
-            data.append(tuple(line.split(",")))
-    return tuple(data)
+            data = tuple(line.split(","))
+            conn.execute(destynation.insert().values(data))
 
 
 if __name__ == "__main__":
     engine = create_engine("sqlite:///database.db")
     conn = engine.connect()
     meta.create_all(engine)
-    stations_data = import_data("clean_stations.csv")
-    measure_data = import_data("clean_measure.csv")
-    conn.execute(stations.insert().values(stations_data))
-    conn.execute(measure.insert().values(measure_data))
+    import_data(conn, "clean_stations.csv", stations)
+    import_data(conn, "clean_measure.csv", measure)
 
-    list = conn.execute("SELECT * FROM stations LIMIT 5").fetchall()
+    list = conn.execute(stations.select()).fetchmany(5)
     print(*list, sep="\n")
 
     # delete
     conn.execute(stations.delete().where(stations.c.station == "USC00519397"))
-    list = conn.execute("SELECT * FROM stations").fetchall()
+    list = conn.execute(stations.select())
     print("After delete", *list, sep="\n")
 
     # insert
