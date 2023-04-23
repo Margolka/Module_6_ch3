@@ -1,12 +1,13 @@
-from sqlalchemy import Table, Column, Integer, String, MetaData, Date, Float, ForeignKey
+from sqlalchemy import Table, Column, Integer, String, MetaData, Date, Float
 from sqlalchemy import create_engine
 
 meta = MetaData()
 measure = Table(
     "measure",
     meta,
+    Column("id", Integer, primary_key=True),
     Column("station", String),
-    Column("date", String),
+    Column("date", Date),
     Column("precip", Float),
     Column("tobs", Integer),
 )
@@ -14,7 +15,8 @@ measure = Table(
 stations = Table(
     "stations",
     meta,
-    Column("station", String, primary_key=True),
+    Column("id", Integer, primary_key=True),
+    Column("station", String),
     Column("latitude", Float),
     Column("longitude", Float),
     Column("elevation", Integer),
@@ -24,22 +26,31 @@ stations = Table(
 )
 
 
-def import_data(conn, filecsv, destynation):
+def clear_line(line):
+    line = line.replace("\n", "")
+    line = line.replace("\r", "")
+    return line
+
+
+def insert_data(conn, tablename, filecsv):
+    data = []
     with open(filecsv, "r") as file:
-        next(file)
+        column_title = clear_line(next(file))
         for line in file:
-            line = line.replace("\n", "")
-            line = line.replace("\r", "")
-            data = tuple(line.split(","))
-            conn.execute(destynation.insert().values(data))
+            line = clear_line(line)
+            data.append(tuple(line.split(",")))
+        data = tuple(data)
+    markers = ",".join("?" * len(data[0]))
+    ins = f"INSERT INTO {tablename} ({column_title}) VALUES ({markers})"
+    conn.execute(ins, data)
 
 
 if __name__ == "__main__":
     engine = create_engine("sqlite:///database.db")
     conn = engine.connect()
     meta.create_all(engine)
-    import_data(conn, "clean_stations.csv", stations)
-    import_data(conn, "clean_measure.csv", measure)
+    insert_data(conn, stations, "clean_stations.csv")
+    insert_data(conn, measure, "clean_measure.csv")
 
     list = conn.execute(stations.select()).fetchmany(5)
     print(*list, sep="\n")
@@ -50,7 +61,7 @@ if __name__ == "__main__":
     print("After delete", *list, sep="\n")
 
     # insert
-    deleted_row = ("USC00519397", 21.2716, -157.8168, 3, "WAIKIKI 717.2", "US", "HI")
+    deleted_row = (1, "USC00519397", 21.2716, -157.8168, 3, "WAIKIKI 717.2", "US", "HI")
     conn.execute(stations.insert().values(deleted_row))
 
     # update
@@ -64,4 +75,4 @@ if __name__ == "__main__":
     selected = conn.execute(
         stations.select().where(stations.c.station == "USC00519397")
     )
-    print("selected:\n", *selected)
+    print("selected:", *selected, sep="\n")
