@@ -7,7 +7,7 @@ measure = Table(
     meta,
     Column("id", Integer, primary_key=True),
     Column("station", String),
-    Column("date", Date),
+    Column("date", String),
     Column("precip", Float),
     Column("tobs", Integer),
 )
@@ -33,16 +33,14 @@ def clear_line(line):
 
 
 def insert_data(conn, tablename, filecsv):
-    data = []
+    nr = 1
     with open(filecsv, "r") as file:
-        column_title = clear_line(next(file))
+        next(file)
         for line in file:
             line = clear_line(line)
-            data.append(tuple(line.split(",")))
-        data = tuple(data)
-    markers = ",".join("?" * len(data[0]))
-    ins = f"INSERT INTO {tablename} ({column_title}) VALUES ({markers})"
-    conn.execute(ins, data)
+            data = tuple({nr}) + tuple(line.split(","))
+            nr += 1
+            conn.execute(tablename.insert().values(data))
 
 
 if __name__ == "__main__":
