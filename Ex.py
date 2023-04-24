@@ -33,14 +33,14 @@ def clear_line(line):
 
 
 def insert_data(conn, tablename, filecsv):
-    nr = 1
+    data = []
     with open(filecsv, "r") as file:
         next(file)
         for line in file:
             line = clear_line(line)
-            data = tuple({nr}) + tuple(line.split(","))
-            nr += 1
-            conn.execute(tablename.insert().values(data))
+            data.append(((None),) + tuple(line.split(",")))
+    data = tuple(data)
+    conn.execute(tablename.insert().values(data))
 
 
 if __name__ == "__main__":
