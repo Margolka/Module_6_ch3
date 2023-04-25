@@ -38,7 +38,7 @@ def insert_data(conn, tablename, filecsv):
         next(file)
         for line in file:
             line = clear_line(line)
-            data.append(((None),) + tuple(line.split(",")))
+            data.append((None,) + tuple(line.split(",")))
     data = tuple(data)
     conn.execute(tablename.insert().values(data))
 
