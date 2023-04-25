@@ -1,5 +1,6 @@
 from sqlalchemy import Table, Column, Integer, String, MetaData, Date, Float
 from sqlalchemy import create_engine
+import csv
 
 meta = MetaData()
 measure = Table(
@@ -26,27 +27,17 @@ stations = Table(
 )
 
 
-def clear_line(line):
-    line = line.replace("\n", "")
-    line = line.replace("\r", "")
-    return line
-
-
 def insert_data(conn, tablename, filecsv):
-    data = []
-    with open(filecsv, "r") as file:
-        next(file)
-        for line in file:
-            line = clear_line(line)
-            data.append((None,) + tuple(line.split(",")))
-    data = tuple(data)
-    conn.execute(tablename.insert().values(data))
+    file = open(filecsv, "r")
+    data = list(csv.DictReader(file))
+    conn.execute(tablename.insert(), data)
 
 
 if __name__ == "__main__":
     engine = create_engine("sqlite:///database.db")
     conn = engine.connect()
     meta.create_all(engine)
+
     insert_data(conn, stations, "clean_stations.csv")
     insert_data(conn, measure, "clean_measure.csv")
 
