@@ -28,8 +28,8 @@ stations = Table(
 
 
 def insert_data(conn, tablename, filecsv):
-    file = open(filecsv, "r")
-    data = list(csv.DictReader(file))
+    with open(filecsv, "r") as file:
+        data = list(csv.DictReader(file))
     conn.execute(tablename.insert(), data)
 
 
@@ -41,13 +41,13 @@ if __name__ == "__main__":
     insert_data(conn, stations, "clean_stations.csv")
     insert_data(conn, measure, "clean_measure.csv")
 
-    list = conn.execute(stations.select()).fetchmany(5)
-    print(*list, sep="\n")
+    selected_data = conn.execute(stations.select()).fetchmany(5)
+    print(*selected_data, sep="\n")
 
     # delete
     conn.execute(stations.delete().where(stations.c.station == "USC00519397"))
-    list = conn.execute(stations.select())
-    print("After delete", *list, sep="\n")
+    selected_data = conn.execute(stations.select())
+    print("After delete", *selected_data, sep="\n")
 
     # insert
     deleted_row = (1, "USC00519397", 21.2716, -157.8168, 3, "WAIKIKI 717.2", "US", "HI")
@@ -61,7 +61,7 @@ if __name__ == "__main__":
     )
 
     # select
-    selected = conn.execute(
+    selected_data = conn.execute(
         stations.select().where(stations.c.station == "USC00519397")
     )
-    print("selected:", *selected, sep="\n")
+    print("selected:", *selected_data, sep="\n")
